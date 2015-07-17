@@ -1,0 +1,225 @@
+---
+title: "PA1_template"
+author: "Maria F. G."
+date: "17 Jul 2015"
+output: html_document
+---
+## Lets start with reading and processing the data
+
+We will use a simple read.csv.
+
+```{r read_data, echo=TRUE, cache=TRUE}
+
+device_readings <- read.csv(file = "activity.csv", header = T)
+
+```
+
+## What is mean total number of steps taken per day?
+
+First we will calculate the number of steps taken each day.
+```{r cache=TRUE}
+
+unique_days <- unique(device_readings$date)
+number_of_days <- length(unique_days)
+step_count_per_day <- data.frame(matrix(ncol = 2, nrow = number_of_days))
+colnames(step_count_per_day) <- c("date", "steps")
+step_count_per_day$date = as.Date(step_count_per_day$date, origin = "1970-01-01" )
+
+
+for (i in seq_along(unique_days)) {
+        device_reading_per_day <- subset(device_readings, date == unique_days[i])
+        step_count_per_day$steps[i] <- sum(device_reading_per_day$steps, na.rm = TRUE)
+        step_count_per_day$date[i] <- unique_days[i]
+}
+
+```
+
+Now we generate an histogram of the number of steps per day
+
+```{r}
+
+hist(step_count_per_day$steps, xlab= "steps per day", main = "Histogram Step Count per Day")
+
+```
+
+Now we will calculate and report the mean and the median values of the number of steps taken by day
+
+```{r }
+
+mean_steps <- mean(step_count_per_day$steps)
+paste("The mean value is", mean_steps, sep = " ")
+median_steps <- median(step_count_per_day$steps)
+paste("The median value is", median_steps, sep = " ")
+
+```
+## What is the average daily activity pattern?
+
+The first step is to create a table  that contains the average number of steps across the days for each of unique intervals of 5 minutes. Then plot it.
+
+```{r}
+
+unique_intervals <- unique(device_readings$interval)
+number_of_intervals <- length(unique_intervals)
+average_steps_per_interval <- data.frame(matrix(ncol = 2, nrow = number_of_intervals))
+colnames(average_steps_per_interval) <- c("intervals", "average_steps")
+
+for (i in seq_along(unique_intervals)) {
+        current_interval <- unique_intervals[i]
+        reading_per_interval <- subset(device_readings, interval == current_interval)
+        average_steps_per_interval$average_steps[i] <- mean(reading_per_interval$steps, na.rm = TRUE)
+        average_steps_per_interval$intervals[i] <- current_interval
+        
+}
+
+plot (average_steps_per_interval$interval, average_steps_per_interval$average_steps, xlab = "Intervals", ylab = "average steps", type = "l", main = "Average Steps per Interval")
+
+```
+
+Now we need to find out which interval is the one that has the highest average across all days.
+
+```{r}
+
+max_average <- round (max(average_steps_per_interval$average_steps), 3)
+max_row <- which.max(average_steps_per_interval[,"average_steps"])
+max_interval <- average_steps_per_interval$intervals[max_row]
+
+paste("The interval with the hightest average is", max_interval, ". And its value is", max_average, sep = " ")
+```
+
+##Imputing missing values
+
+Calculate the total number of NA rows in the dataset
+
+```{r}
+
+complete_readings <- device_readings[complete.cases(device_readings),]
+number_of_na <- nrow(device_readings) - nrow(complete_readings)
+
+paste ("The total number of rows with a NA value on them is", number_of_na, sep = " ")
+
+```
+
+We are now going to fill or impute the missing steps values with the mean value of that day and call the new table not_na_device_reading.
+
+```{r}
+not_na_device_reading <- device_readings
+for (i in seq_along(not_na_device_reading$steps)){
+        if (is.na(not_na_device_reading$steps[i])) {
+                current_date<- not_na_device_reading$date[i]
+                current_date <- as.Date(current_date)
+                row_to_impute <- subset(step_count_per_day, date == current_date)
+                average_steps_to_impute <- row_to_impute$steps
+                not_na_device_reading$steps[i] <-    average_steps_to_impute
+                #print (paste("replaced NA by", average_steps_to_impute, sep=" "))
+        }
+        else {}
+
+}
+```
+
+Now we create an histogram with the total number of steps taken each day and we report on the mean and the media of steps taken each day. We repeat the same function as in the first exercise but taking the data without NA.
+
+```{r}
+
+not_na_unique_days <- unique(not_na_device_reading$date)
+not_na_number_of_days <- length(not_na_unique_days)
+not_na_step_count_per_day <- data.frame(matrix(ncol = 2, nrow = not_na_number_of_days))
+colnames(not_na_step_count_per_day) <- c("date", "steps")
+not_na_step_count_per_day$date = as.Date(not_na_step_count_per_day$date, origin = "1970-01-01" )
+
+
+for (i in seq_along(not_na_unique_days)) {
+        not_na_device_reading_per_day <- subset(not_na_device_reading, date == not_na_unique_days[i])
+        not_na_step_count_per_day$steps[i] <- sum(not_na_device_reading_per_day$steps, na.rm = TRUE)
+        not_na_step_count_per_day$date[i] <- not_na_unique_days[i]
+}
+
+```
+
+Now we generate an histogram of the number of steps per day and we calculate the mean and median
+
+```{r cache=TRUE}
+
+hist(not_na_step_count_per_day$steps, xlab= "steps per day", main = "Histogram Steps per Day")
+
+not_na_mean_steps <- mean(not_na_step_count_per_day$steps)
+if (identical(mean_steps, not_na_mean_steps) == TRUE) {print (paste("Original and Imputed mean values are identical"))} else {print (paste("Original and Imputed mean values are NOT identical"))}
+
+
+not_na_median_steps <- median(not_na_step_count_per_day$steps)
+if (identical(median_steps, not_na_median_steps) == TRUE) {print (paste("Original and Imputed median values are identical"))} else {print (paste("Original and Imputed median values are NOT identical"))}
+```
+
+#Are there differences in activity patterns between weekdays and weekends?
+
+First we will create a table that will split data between weekdays and weekends
+
+```{r}
+#create a factor for weekdays and weekends
+weekend_weekday <- c("weekday", "weekend")
+weekend_weekday <- as.factor(weekend_weekday)
+
+#day_week <- vector(mode = "char", length = total_readings)
+#not_na_device_reading <- cbind(not_na_device_reading, day_week)
+
+#Now we fill the day_week column with the right factor
+not_na_device_reading$date = as.Date(step_count_per_day$date, origin = "1970-01-01" )
+not_na_device_reading$day_week <- weekdays(not_na_device_reading$date)
+
+#Now we create a table with the weekend data
+device_reading_saturday <- subset (not_na_device_reading, day_week == "Saturday")
+device_reading_sunday <- subset (not_na_device_reading, day_week == "Sunday")
+device_reading_weekend <- rbind(device_reading_saturday, device_reading_sunday)
+
+#Now we create a table with the weekday data
+device_reading_monday <- subset (not_na_device_reading, day_week == "Monday")
+device_reading_tuesday <- subset (not_na_device_reading, day_week == "Tuesday")
+device_reading_wednesday <- subset (not_na_device_reading, day_week == "Wednesday")
+device_reading_thursday <- subset (not_na_device_reading, day_week == "Thursday")
+device_reading_friday <- subset (not_na_device_reading, day_week == "Friday")
+device_reading_weekday <- rbind(device_reading_monday, device_reading_tuesday, device_reading_wednesday, device_reading_thursday, device_reading_friday )
+
+#Now we create the averages per intervals like in exercise (per weekend)
+
+unique_intervals <- unique(device_reading_weekend$interval)
+number_of_intervals <- length(unique_intervals)
+average_steps_per_interval_weekends <- data.frame(matrix(ncol = 2, nrow = number_of_intervals))
+colnames(average_steps_per_interval_weekends) <- c("intervals", "average_steps")
+
+for (i in seq_along(unique_intervals)) {
+        current_interval <- unique_intervals[i]
+        reading_per_interval <- subset(device_reading_weekend, interval == current_interval)
+        average_steps_per_interval_weekends$average_steps[i] <- mean(reading_per_interval$steps, na.rm = TRUE)
+        average_steps_per_interval_weekends$intervals[i] <- current_interval
+}
+
+#Now we create the averages per intervals like in exercise (per weekday)
+
+unique_intervals <- unique(device_reading_weekday$interval)
+number_of_intervals <- length(unique_intervals)
+average_steps_per_interval_weekday <- data.frame(matrix(ncol = 2, nrow = number_of_intervals))
+colnames(average_steps_per_interval_weekday) <- c("intervals", "average_steps")
+
+for (i in seq_along(unique_intervals)) {
+        current_interval <- unique_intervals[i]
+        reading_per_interval <- subset(device_reading_weekday, interval == current_interval)
+        average_steps_per_interval_weekday$average_steps[i] <- mean(reading_per_interval$steps, na.rm = TRUE)
+        average_steps_per_interval_weekday$intervals[i] <- current_interval
+}
+
+# We order the tables per interval
+
+weekend_steps <- average_steps_per_interval_weekends[order(average_steps_per_interval_weekends$interval),]
+
+weekdays_steps <- average_steps_per_interval_weekday[order(average_steps_per_interval_weekday$interval),]
+```
+
+And finally we plot the functions separately per weekdays and weekends.
+
+```{r}
+par(mfrow = c(2,1))
+plot(weekdays_steps$intervals, weekdays_steps$average_steps, type = "l", main = "average steps on weekdays", xlab = "intervals", ylab = "average steps on weekdays")
+plot(weekend_steps$intervals, weekend_steps$average_steps, type = "l", main = "average steps on weekends", xlab = "intervals", ylab = "average steps on weekends")
+
+```
+
