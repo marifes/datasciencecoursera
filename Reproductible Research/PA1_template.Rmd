@@ -8,7 +8,7 @@ output: html_document
 
 We will use a simple read.csv.
 
-```{r read_data, echo=TRUE, cache=TRUE}
+```{r read_data, echo=TRUE}
 
 device_readings <- read.csv(file = "activity.csv", header = T)
 
@@ -17,7 +17,7 @@ device_readings <- read.csv(file = "activity.csv", header = T)
 ## What is mean total number of steps taken per day?
 
 First we will calculate the number of steps taken each day.
-```{r cache=TRUE}
+```{r }
 
 unique_days <- unique(device_readings$date)
 number_of_days <- length(unique_days)
@@ -138,7 +138,7 @@ for (i in seq_along(not_na_unique_days)) {
 
 Now we generate an histogram of the number of steps per day and we calculate the mean and median
 
-```{r cache=TRUE}
+```{r }
 
 hist(not_na_step_count_per_day$steps, xlab= "steps per day", main = "Histogram Steps per Day")
 
